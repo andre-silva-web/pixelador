@@ -1,2 +1,2 @@
 # pixelador
-Projeto em javascript que transforma imagens em pixel art.
+Projeto em javascript ainda em construção que transforma imagens em pixel art.
