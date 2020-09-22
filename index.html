@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pixelator</title>
+        <style>   
+            div#grid div {
+                width: 128px;
+                height: 128px;
+                float: left;
+                background-color: #ffffff33;
+            }                   
+        </style>
+        <meta http-equiv="Content-Language" content="en">
+    </head>
+    <body>
+        <h1>Pixelator</h1>
+        <form action="javascript:void(0);">
+            <h2>Select the image you want to transform into pixel art.</h2>
+            <!-- I was unable to configure the English language in the input tag. -->
+            <input type="file" lang="en" accept="image/*"onchange="uploadImage(event);">
+            <br>
+            <br>
+            <canvas id="grid" width="512" height="512" style="display: none;"></canvas>
+            <img src="" id="image" style="display: none;" onchange="configElemDiv();">
+            <br><br>
+            <h2>Grid configuration.</h2>
+            <label for="grid-split">Grid split:</label>
+            <select id="grid-split" onchange="gridSplit(this);"></select>
+            <br>
+            <br>
+            <label for="aumenta-imagem">Tanhanho da imagem:</label>
+            <input type="number" id="aumenta-imagem" min="0" onchange="configTamanhoImagem(this);">
+            <br>
+            <br>
+            <input type="button" value="Executar" onclick="criarPixelArt();">
+            <br>
+            <br>
+            <canvas id="pixel-art" width="512" height="512" ></canvas> 
+        </form>
+    </body>
+    <script>
+        //Variables
+            //Configures the img#image element in the image variable.
+        var image = document.querySelector('#image'), 
+            //Supported file types. To verify that the uploaded file is an image.
+            fileTypes = `tiff,pjp,pjpeg,jfif,tif,gif,svg,bmp,png,jpeg,svgz,jpg,webp,ico,xbm,dib`,
+            canvas = document.querySelector('#myCanvas'),
+            grid = document.querySelector('#grid'),
+            imgData,
+            gridSplit = document.querySelector('#grid-split'),
+            rgbPretoBranco = {'preto': [0, 0, 0], 'branco': [255, 255, 255]},
+            chaveRgb = 'preto',
+            tamanhoImagem = document.querySelector('#aumenta-imagem'),
+            cavasResult = document.querySelector('#pixel-art'),
+            //Used to upload files.
+            fileReader = new FileReader();
+        //Pega as dimensões da imagem e seta no canvas
+        function configDimensoes(){
+            canvas.setAttribute('width', image.width);
+            canvas.setAttribute('height', image.height);
+        }
+        //Duplica a imagem no canvas
+        function configCanvas(){
+            var ctx = cavasResult.getContext("2d");
+            ctx.drawImage(image, 0, 0);
+            imgData = ctx.getImageData(0, 0, cavasResult.width, cavasResult.height);            
+        } 
+        //Defines the base64 image in the image variable and calls the loadImageIntoGrid function.
+        function uploadImage(event){ 
+            if(
+                fileTypes.split(',').filter(function(e){
+                    if(e == event.target.files[0].type.split('/')[1]){
+                        return e;
+                    }
+                }).length != 0    
+            ){
+                //Defines the base64 image in the image variable and calls the loadImageIntoGrid function.
+                fileReader.onload = function(){
+                    image.src = fileReader.result;
+                    loadImageIntoGrid();
+                }
+                //Defines the base64 image in the image variable and calls the loadImageIntoGrid function.
+                fileReader.readAsDataURL(event.target.files[0]);                
+            }else{
+                alert('The uploaded file is not an image.');
+                event.target.value = '';
+            }
+        }
+        //Configures the image in the background-image of the element canvas#grid.
+        function loadImageIntoGrid(){
+            setTimeout(function(){
+                if(image.width != grid.width){
+                    //Deixa a grid proporcional
+                    grid.setAttribute(
+                        'style', 
+                        `background-image: url(${image.src});
+                        border-style: solid;
+                        border-width: 1px;
+                        border-color: #32aef7;
+                        background-repeat: no-repeat;
+                        background-size: ${image.width}px;
+                        background-position-x: 0px;
+                        background-position-y: 0px;
+                        background-position: center;
+                        display: block;`
+                    );
+                    //Inicia configurações da grid/imagem
+                    iniciaConfigGradeImagem();	
+                    setAumentaImagem();		
+                }else{loadImageIntoGrid()}
+            }, 500);	
+        }
+		//Faz um ajuste binario do lado da grade
+        //usar no drop box de divisão
+		function progressaoBinaria(lado){
+			var ladoAjustado = 2;
+			var prog = [];
+			while(ladoAjustado < lado){
+				prog.push(ladoAjustado);
+				ladoAjustado += ladoAjustado;
+			}
+			return prog;
+		}
+        function iniciaConfigGradeImagem(){
+			var htmlSelect = `<option value>Selecione</option>`;
+            progressaoBinaria(grid.width).forEach(function(e){
+				htmlSelect += `<option value="${e}">${e*e}</option>`;
+			});
+			gridSplit.innerHTML = htmlSelect;
+        }
+        function gridSplit(element){
+            //Valor em px do lado em imgData
+            //console.log((grade.width/element.value)*4);
+            console.log(element.value);
+            var ctx = grid.getContext("2d");
+            //ctx.drawImage(imagem, 0, 0);
+            imgData = ctx.getImageData(0, 0, grid.width, grid.height); 
+            imgData.data.forEach(function(e, index){
+                if(element.value != ''){
+                    if((index%((grid.width/element.value)*(grid.width*4))) == 0){
+                        chaveRgb = chaveRgb == 'preto' ? 'branco' : 'preto';
+                    }		
+                    if((index%((grid.width/element.value)*4)) == 0){
+                        chaveRgb = chaveRgb == 'preto' ? 'branco' : 'preto';
+                    }
+                    if(index%4 == 0){
+                        imgData.data[index] = rgbPretoBranco[chaveRgb][0];
+                        imgData.data[index +1] = rgbPretoBranco[chaveRgb][1];
+                        imgData.data[index +2] = rgbPretoBranco[chaveRgb][2];
+                        imgData.data[index +3] = 64;
+                    }		
+                }
+            }); 	
+            chaveRgb = 'preto';
+            ctx.putImageData(imgData, 0, 0);
+        }
+        function setAumentaImagem(){
+            tamanhoImagem.value = image.width;
+        }
+        function configTamanhoImagem(element){
+            grid.style.backgroundSize = element.value + 'px';
+        }
+    </script>
+</html>
